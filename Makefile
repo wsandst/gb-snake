@@ -17,10 +17,10 @@ $(BIN_DIR) $(OBJ_DIR):
 	mkdir -p $@
 	
 $(ROM): $(OBJ) | $(BIN_DIR) $(OBJ_DIR)
-	rgblink -o $(ROM) $(OBJ_DIR)/main.o && \
-	rgbfix -v -p 0xFF $(ROM)
+	rgblink -o $@ $^ && \
+	rgbfix -v -p 0xFF $@
 
-$(OBJ_DIR)/main.o: $(SRC_DIR)/main.asm | $(OBJ_DIR)
+$(OBJ_DIR)/%.o: $(SRC_DIR)/%.asm | $(OBJ_DIR)
 	rgbasm -i $(SRC_DIR) -L -o $@ $<
 
 clean:
