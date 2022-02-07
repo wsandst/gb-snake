@@ -55,8 +55,39 @@ CopyTilemap:
 	ld a, %11100100
 	ld [rBGP], a
 
+	ld a, $A4
+	call PrintByte
+
 Done:
 	jp Done
+
+PrintByte:
+	; Print value in a as hexadecimal
+	ld c, a
+	; Print first 4 bits
+	srl a
+	srl a
+	srl a
+	srl a
+	call Print4Bit
+	ld a, c
+	; Print last 4 bits
+	and a, %00001111
+	call Print4Bit
+	ld a, c
+	ret
+Print4Bit:
+	cp a, 10
+	ld b, 55
+	jr nc, .next
+	ld b, 48
+.next
+	add a, b
+	; Send character over link
+	ld [rSB], a
+	ld a, $81
+	ld [rSC], a
+	ret
 
 
 SECTION "Tile data", ROM0
