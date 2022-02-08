@@ -21,13 +21,20 @@ def main():
     if len(sys.argv) < 2:
         print("Please specify an image to convert")
         return
-    filename = sys.argv[1]
-    im=Image.open(filename)
-    width, height = im.size
-    if width != 8 or height != 8:
-        print("The specified image does not meet the size requirements of 8x8 pixels")
-        return
+    filenames = sys.argv[1:]
+    for filename in filenames:
+        im=Image.open(filename)
+        width, height = im.size
+        if width != 8 or height != 8:
+            print("The specified image does not meet the size requirements of 8x8 pixels")
+            return
+        print(f"{filename}:")
+        convert_image(im)
+        print()
 
+
+def convert_image(im):
+    width, height = im.size
     pixels = list(im.getdata())
     result = "db "
     for y in range(height):
