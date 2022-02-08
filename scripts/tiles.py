@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """
 Script for converting a tile (8x8) image to hex data for assembly
 """
@@ -39,14 +40,14 @@ def main():
                 pass
             elif color == LIGHTGREY:
                 #1,0
-                byte1 = set_bit(byte1, x)
+                byte1 = set_bit(byte1, 7-x)
             elif color == DARKGREY:
                 #0,1
-                byte2 = set_bit(byte2, x)
+                byte2 = set_bit(byte2, 7-x)
             elif color == BLACK:
                 #0,1
-                byte1 = set_bit(byte1, x)
-                byte2 = set_bit(byte2, x)
+                byte1 = set_bit(byte1, 7-x)
+                byte2 = set_bit(byte2, 7-x)
             else:
                 print("Invalid color found, must be white, light gray, dark gray or black!")
                 return
