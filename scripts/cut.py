@@ -22,10 +22,10 @@ def main():
         if width % 8 != 0 or height % 8 != 0:
             print("The image size must be a multiple of 8x8")
             return
-        cut_image(im)
+        cut_image(im, filename)
         print(f"Cutting complete for {filename}")
 
-def cut_image(im):
+def cut_image(im, filename):
     width, height = im.size
     pixels = list(im.getdata())
     subpixels = [(0,0,0)] * 8 * 8
@@ -36,7 +36,7 @@ def cut_image(im):
                     subpixels[ry*8 + rx] = pixels[width*(ty*8+ry) + tx*8 + rx]
             subimage = Image.new(im.mode, (8, 8))
             subimage.putdata(subpixels)
-            subimage.save(f"output{tx}x{ty}.png")
+            subimage.save(f"{filename}-{tx}x{ty}.png")
 
 
 if __name__ == "__main__":

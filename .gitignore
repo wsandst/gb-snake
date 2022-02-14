@@ -4,3 +4,4 @@ build/
 .vscode/
 *.bmp
 palette.png
+__pycache__/
