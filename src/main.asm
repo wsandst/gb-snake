@@ -41,10 +41,19 @@ WaitVBlank:
 	; During the first (blank) frame, initialize display registers
 	ld a, %11100100
 	ld [rBGP], a
-	ld a, $A4
-	call PrintByte
+
+	
 
 Done:
+	set 5, a
+	ld [$FF00], a
+	ld a, [$FF00]
+	call PrintByteHex
+	ld a, 255
+Loop:
+	dec a
+	cp a, 0
+	jp nz, Loop
 	jp Done
 
 SECTION "Tile data", ROM0
