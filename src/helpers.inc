@@ -14,7 +14,7 @@ Memcpy:
 
 
 ; Print value in reg A as hexadecimal over link
-; Restored registers: af, bc, de
+; All registers are restored
 PrintByteHex:
 	; Save registers
 	push bc
@@ -61,7 +61,7 @@ PrintByteChar:
 	ret
 
 ; Print byte in reg A as bits over link
-; Restored registers: af, bc, de
+; All registers are restored
 PrintByteBits:
 	; Save registers
 	push bc

@@ -2,6 +2,9 @@ INCLUDE "hardware.inc"
 INCLUDE "helpers.inc"
 EXPORT PrintByte
 
+SECTION "workram", WRAM0
+facingDirection:: ds 1
+
 SECTION "Header", ROM0[$100]
 
 	jp EntryPoint
@@ -41,13 +44,9 @@ WaitVBlank:
 	; During the first (blank) frame, initialize display registers
 	ld a, %11100100
 	ld [rBGP], a
-
-	
-
 Done:
-	set 5, a
-	ld [$FF00], a
-	ld a, [$FF00]
+    call UpdateInput
+	ld a, [facingDirection]
 	call PrintByteHex
 	ld a, 255
 Loop:
@@ -55,6 +54,56 @@ Loop:
 	cp a, 0
 	jp nz, Loop
 	jp Done
+
+; Update the input 'facingDirection' variable
+; 0 = right, 1 = left, 2 = up, 3 = down
+; All registers are restored
+UpdateInput:
+    push af
+    push bc
+    ; Get arrow input
+    ld a, 0
+    set 5, a
+	ld [$FF00], a
+    ld a, [$FF00]
+    ld b, a
+
+    ; Store current direction in c
+    ld a, [facingDirection]
+    ld c, a
+
+    ; Check right arrow
+    bit 0, b
+    ld a, 0
+    ld [facingDirection], a
+    jr z, .return
+
+    ; Check left arrow
+    bit 1, b
+    ld a, 1
+    ld [facingDirection], a
+    jr z, .return
+
+    ; Check up arrow
+    bit 2, b
+    ld a, 2
+    ld [facingDirection], a
+    jr z, .return
+
+    ; Check down arrow
+    bit 3, b
+    ld a, 3
+    ld [facingDirection], a
+    jr z, .return
+
+    ; Keep using current direction if no button is pressed
+    ld a, c
+    ld [facingDirection], a
+.return
+    pop af
+    pop bc
+    ret
+    
 
 SECTION "Tile data", ROM0
 
