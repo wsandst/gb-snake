@@ -3,7 +3,14 @@ INCLUDE "helpers.inc"
 EXPORT PrintByte
 
 SECTION "workram", WRAM0
-facingDirection:: ds 1
+facingDirection:: db
+snakeLength :: dw
+snakeLengthToGrow: db
+; Keep a queue of body tile positions. 
+; Positions are relative to TilemapGame. First 12 bits are the index, the last 4 bits are which subtile pos
+snakeBodyQueue:: ds 2880
+snakeHead :: dw ; offset in snakeBodyQueue
+snakeTail :: dw ; offset in snakeBodyQueue
 
 SECTION "Header", ROM0[$100]
 
@@ -44,16 +51,127 @@ WaitVBlank:
 	; During the first (blank) frame, initialize display registers
 	ld a, %11100100
 	ld [rBGP], a
+
+    call StartGame
+
+    ;ld a, [snakeTail]
+    ;ld h, a
+    ;ld a, [snakeTail+1]
+    ;ld l, a
+
+    ;ld a, [snakeHead]
+    ;ld d, a
+    ;ld a, [snakeHead+1]
+    ;ld e, a
+
+    ld hl, snakeHead
+    ld a, h
+    call PrintByteHex
+    ld a, l
+    call PrintByteHex
+
+    ld hl, snakeBodyQueue
+    ld a, h
+    call PrintByteHex
+    ld a, l
+    call PrintByteHex
+
+    ld hl, TilemapGame
+    ld a, h
+    call PrintByteHex
+    ld a, l
+    call PrintByteHex
+
+    BREAKPOINT
+
+    call MoveSnake
+    call MoveSnake
+    call MoveSnake
+
+    BREAKPOINT
+
+    ;call PrintMem
+
 Done:
     call UpdateInput
 	ld a, [facingDirection]
-	call PrintByteHex
+	;call PrintByteHex
 	ld a, 255
 Loop:
 	dec a
 	cp a, 0
 	jp nz, Loop
 	jp Done
+
+StartGame:
+    ; Initiate snake body
+    ; snakeLength = 1
+    ld a, 1
+    ld [snakeLength], a
+    ld a, 3
+    ; snakeLengthToGrow = 3
+    ld [snakeLengthToGrow], a
+    
+    ; snakeHead = 0
+    ld a, 0
+    ld [snakeHead], a
+    ld [snakeHead+1], a
+    ; snakeTail = 0
+    ld [snakeTail], a
+    ld [snakeTail+1], a
+
+    ; Set the first snake body element to be at the middle of the screen
+    ld bc, TilemapGame
+    ld a, b
+    ld [snakeBodyQueue], a
+    ld a, c
+    ld [snakeBodyQueue+1], a
+    ret
+MoveSnake:
+    ; bc = current head position in tilemap coordinates
+    ; hl = [snakeHead]
+    ld a, [snakeHead]
+    ld h, a
+    ld a, [snakeHead + 1]
+    ld l, a
+
+    ld bc, snakeBodyQueue
+    add hl, bc
+
+    ; bc = [hl] (get the value pointed to in the queue)
+    ld b, [hl]
+    inc hl
+    ld c, [hl]
+
+    ; Move to the right
+    inc bc
+
+    ; Get next spot in queue and set to new tile location (need to handle wraparound later)
+    inc hl
+    ld a, b
+    ld [hli], a
+    ld a, c
+    ld [hl], a
+
+    ; Move the head one step forward in the queue
+    ; will need to handle wraparound here later
+    ld a, [snakeHead]
+    ld h, a
+    ld a, [snakeHead + 1]
+    ld l, a
+
+    ; [snakeHead] = [snakeHead] + 2
+    inc hl
+    inc hl
+
+    ld a, h
+    ld [snakeHead], a
+    ld a, l
+    ld [snakeHead+1], a
+
+    ; Handle tail later
+
+    ret
 
 ; Update the input 'facingDirection' variable
 ; 0 = right, 1 = left, 2 = up, 3 = down

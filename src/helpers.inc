@@ -1,7 +1,12 @@
 
 SECTION "Helpers", ROM0
 
-; Copy the memory in address de to address hli, with length bc
+; Custom breakpoints for the emulator. Treats ld b, b as breakpoints.
+MACRO BREAKPOINT
+	ld b, b
+ENDM
+
+; Copy the memory in address de to address hl, with length bc
 Memcpy:
 	ld a, [de]
 	ld [hli], a
@@ -90,4 +95,19 @@ PrintByteBits:
 	pop af
 	pop de
 	pop bc
+	ret
+
+; Print between the memory addresses hl and de
+PrintMem:
+	ld a, [hli]
+	call PrintByteHex
+	ld a, [hli]
+	call PrintByteHex
+
+	ld a, h
+	cp a, d
+	jr nz, PrintMem
+	ld a, l
+	cp a, e
+	jr nz, PrintMem
 	ret
