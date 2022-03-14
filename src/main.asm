@@ -18,31 +18,30 @@ SECTION "Header", ROM0[$100]
 
 	ds $150 - @, 0 ; Make room for the header
 
+
+    
 EntryPoint:
 	; Shut down audio circuitry
 	ld a, 0
 	ld [rNR52], a
 
 	; Do not turn the LCD off outside of VBlank
-WaitVBlank:
-	ld a, [rLY]
-	cp 144
-	jp c, WaitVBlank
+    call WaitForVBlank
 
 	; Turn the LCD off
 	ld a, 0
 	ld [rLCDC], a
 
 	; Copy the tile data
-	ld de, TilesTitle
+	ld de, TilesGame
 	ld hl, $9000
-	ld bc, TilesTitleEnd - TilesTitle
+	ld bc, TilesGameEnd - TilesGame
 	call Memcpy
 
 	; Copy the tilemap
-	ld de, TilemapTitle
+	ld de, TilemapGame
 	ld hl, $9800
-	ld bc, TilemapTitleEnd - TilemapTitle
+	ld bc, TilemapGameEnd - TilemapGame
 	call Memcpy
 
 	; Turn the LCD on
@@ -52,56 +51,20 @@ WaitVBlank:
 	ld a, %11100100
 	ld [rBGP], a
 
+    ld a, HIGH(TilemapGame)
+    call PrintByteHex
+    ld a, LOW(TilemapGame)
+    call PrintByteHex
+
+    ld h, $98
+    ld l, $02
+    ld [hl], 15
+
     call StartGame
 
-    ;ld a, [snakeTail]
-    ;ld h, a
-    ;ld a, [snakeTail+1]
-    ;ld l, a
-
-    ;ld a, [snakeHead]
-    ;ld d, a
-    ;ld a, [snakeHead+1]
-    ;ld e, a
-
-    ld hl, snakeHead
-    ld a, h
-    call PrintByteHex
-    ld a, l
-    call PrintByteHex
-
-    ld hl, snakeBodyQueue
-    ld a, h
-    call PrintByteHex
-    ld a, l
-    call PrintByteHex
-
-    ld hl, TilemapGame
-    ld a, h
-    call PrintByteHex
-    ld a, l
-    call PrintByteHex
-
-    BREAKPOINT
-
-    call MoveSnake
-    call MoveSnake
-    call MoveSnake
-
-    BREAKPOINT
-
     ;call PrintMem
-
-Done:
-    call UpdateInput
-	ld a, [facingDirection]
-	;call PrintByteHex
-	ld a, 255
 Loop:
-	dec a
-	cp a, 0
-	jp nz, Loop
-	jp Done
+	jp Loop
 
 StartGame:
     ; Initiate snake body
@@ -121,12 +84,31 @@ StartGame:
     ld [snakeTail+1], a
 
     ; Set the first snake body element to be at the middle of the screen
-    ld bc, TilemapGame
+    ld bc, $9800
     ld a, b
     ld [snakeBodyQueue], a
     ld a, c
     ld [snakeBodyQueue+1], a
+
+    ld a, 0
+    call GameLoop
     ret
+
+GameLoop:
+    call WaitForVBlank
+    inc a
+    cp a, 255
+    jp c, .next
+
+    BREAKPOINT
+    ; Only move every 255 thing
+    call MoveSnake
+    ld a, 0
+.next
+    jp GameLoop
+    ret
+
+
 MoveSnake:
     ; bc = current head position in tilemap coordinates
     ; hl = [snakeHead]
@@ -145,6 +127,13 @@ MoveSnake:
 
     ; Move to the right
     inc bc
+
+    ; Update this tile location
+    push hl
+    ld h, b
+    ld l, c
+    ld [hl], 15
+    pop hl
 
     ; Get next spot in queue and set to new tile location (need to handle wraparound later)
     inc hl
@@ -221,7 +210,19 @@ UpdateInput:
     pop af
     pop bc
     ret
-    
+
+WaitForVBlank:
+    push af
+.loop
+    ld   a, [rLY]
+    cp   144
+    jp   c, .loop
+    pop af
+    ret
+
+VBlankInt:
+    ld a, 10
+    call PrintByteHex
 
 SECTION "Tile data", ROM0
 
@@ -426,17 +427,17 @@ TilemapTitle:
 TilemapTitleEnd:
 
 TilemapGame:
+	db $01, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00,  0,0,0,0,0,0,0,0,0,0,0,0
 	db $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00,  0,0,0,0,0,0,0,0,0,0,0,0
 	db $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00,  0,0,0,0,0,0,0,0,0,0,0,0
 	db $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00,  0,0,0,0,0,0,0,0,0,0,0,0
 	db $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00,  0,0,0,0,0,0,0,0,0,0,0,0
 	db $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00,  0,0,0,0,0,0,0,0,0,0,0,0
 	db $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00,  0,0,0,0,0,0,0,0,0,0,0,0
-	db $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00,  0,0,0,0,0,0,0,0,0,0,0,0
-	db $00, $00, $00, $00, $00, $00, $00, 01, 02, 03, 04, $00, $00, $00, $00, $00, $00, $00, $00, $00,  0,0,0,0,0,0,0,0,0,0,0,0
-	db $00, $00, $00, $00, $00, $00, $00, 05, 06, 07, 08, $00, $00, $00, $00, $00, $00, $00, $00, $00,  0,0,0,0,0,0,0,0,0,0,0,0
-	db $00, $00, $00, $00, $00, $00, $00, 09, 10, 11, 12, 16, $00, $00, $00, $00, $00, $00, $00, $00,  0,0,0,0,0,0,0,0,0,0,0,0
-	db $00, $00, $00, $00, $00, $00, $00, 13, 14, 15, 00, $00, $00, $00, $00, $00, $00, $00, $00, $00,  0,0,0,0,0,0,0,0,0,0,0,0
+	db $00, $00, $00, $00, $00, $00, $00,  01,  02,  03,  04, $00, $00, $00, $00, $00, $00, $00, $00, $00,  0,0,0,0,0,0,0,0,0,0,0,0
+	db $00, $00, $00, $00, $00, $00, $00,  05,  06,  07,  08, $00, $00, $00, $00, $00, $00, $00, $00, $00,  0,0,0,0,0,0,0,0,0,0,0,0
+	db $00, $00, $00, $00, $00, $00, $00,  09,  10,  11,  12,  16, $00, $00, $00, $00, $00, $00, $00, $00,  0,0,0,0,0,0,0,0,0,0,0,0
+	db $00, $00, $00, $00, $00, $00, $00,  13,  14,  15,  00, $00, $00, $00, $00, $00, $00, $00, $00, $00,  0,0,0,0,0,0,0,0,0,0,0,0
 	db $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00,  0,0,0,0,0,0,0,0,0,0,0,0
 	db $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00,  0,0,0,0,0,0,0,0,0,0,0,0
 	db $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00,  0,0,0,0,0,0,0,0,0,0,0,0
