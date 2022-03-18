@@ -82,7 +82,7 @@ StartGame:
     ret
 
 GameLoop:
-    ld a, 5
+    ld a, 10
     call WaitForFrames
 
     BREAKPOINT
@@ -159,10 +159,17 @@ MoveSnakeHead:
     jp .end
 .moveRight
     inc bc
-    jr .end
+    jr .moveXBoundsCheck
 .moveLeft 
     dec bc
-    jr .end
+.moveXBoundsCheck
+    ; Isolate x coordinate
+    ld a, c
+    and a, %0011111
+    ; Check that it is within 0 < x < 20
+    cp a, 20
+    jp nc, GameOver
+    jp .end
 .moveUp
     ld a, c
     sub a, 32
@@ -170,8 +177,7 @@ MoveSnakeHead:
     ld a, b
     sbc a, 0
     ld b, a
-
-    jr .end
+    jr .moveYBoundsCheck
 .moveDown
     ld a, c
     add a, 32
@@ -179,7 +185,20 @@ MoveSnakeHead:
     ld a, b
     adc a, 0
     ld b, a
-    jr .end
+.moveYBoundsCheck:
+    ; hl > 0x9800 (y > 0)
+    ld a, b
+    cp $98
+    jp c, GameOver
+    ; hl < 0x9A34 (y < 18)
+    cp $9A
+    jp c, .end
+    cp $98
+    jp c, GameOver
+    ld a, c
+    cp $34
+    jp c, .end
+    jp GameOver
 .end
     ; Update this tile location
     push hl
@@ -191,6 +210,7 @@ MoveSnakeHead:
     cp a, 0
     jp nz, GameOver
 
+.next
     ld [hl], 15
     pop hl
 
