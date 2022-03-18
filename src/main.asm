@@ -1,5 +1,6 @@
 INCLUDE "hardware.inc"
 INCLUDE "helpers.inc"
+INCLUDE "utils.inc"
 EXPORT PrintByte
 
 SECTION "workram", WRAM0
@@ -18,55 +19,33 @@ SECTION "Header", ROM0[$100]
 
 	ds $150 - @, 0 ; Make room for the header
 
-
     
 EntryPoint:
 	; Shut down audio circuitry
 	ld a, 0
 	ld [rNR52], a
 
-	; Do not turn the LCD off outside of VBlank
     call WaitForVBlank
+    copyTileData TilesTitle, TilesTitleEnd, TilemapTitle, TilemapTitleEnd
 
-	; Turn the LCD off
-	ld a, 0
-	ld [rLCDC], a
-
-	; Copy the tile data
-	ld de, TilesGame
-	ld hl, $9000
-	ld bc, TilesGameEnd - TilesGame
-	call Memcpy
-
-	; Copy the tilemap
-	ld de, TilemapGame
-	ld hl, $9800
-	ld bc, TilemapGameEnd - TilemapGame
-	call Memcpy
-
-	; Turn the LCD on
-	ld a, LCDCF_ON | LCDCF_BGON
-	ld [rLCDC], a
 	; During the first (blank) frame, initialize display registers
 	ld a, %11100100
 	ld [rBGP], a
 
-    ld a, HIGH(TilemapGame)
-    call PrintByteHex
-    ld a, LOW(TilemapGame)
-    call PrintByteHex
+StartMenuLoop:
+    call WaitForVBlank
+    call DetectAnyInput
+    cp a, 1
+    jp z, StartGame
 
-    ld h, $98
-    ld l, $02
-    ld [hl], 15
+    jp StartMenuLoop
 
-    call StartGame
-
-    ;call PrintMem
-Loop:
-	jp Loop
 
 StartGame:
+    ; Init tilemap graphics
+    call WaitForVBlank
+    copyTileData TilesGame, TilesGameEnd, TilemapGame, TilemapGameEnd
+
     ; Initiate snake body
     ; snakeLength = 1
     ld a, 1
@@ -115,6 +94,7 @@ GameLoop:
 
 MoveSnake:
 MoveSnakeTail:
+    ; Only move tail if we are not growing
     ld a, [snakeLengthToGrow]
     cp a, 0
     jr z, .next
@@ -145,16 +125,7 @@ MoveSnakeTail:
     pop hl
 
     ; Increment tail position
-    ld a, [snakeTail]
-    ld h, a
-    ld a, [snakeTail + 1]
-    ld l, a
-    inc hl
-    inc hl
-    ld a, h
-    ld [snakeTail], a
-    ld a, l
-    ld [snakeTail+1], a
+    incAddressValue16 snakeTail
 
 MoveSnakeHead:
     ; Move head
@@ -224,19 +195,7 @@ MoveSnakeHead:
 
     ; Move the head one step forward in the queue
     ; will need to handle wraparound here later
-    ld a, [snakeHead]
-    ld h, a
-    ld a, [snakeHead + 1]
-    ld l, a
-
-    ; [snakeHead] = [snakeHead] + 2
-    inc hl
-    inc hl
-
-    ld a, h
-    ld [snakeHead], a
-    ld a, l
-    ld [snakeHead+1], a
+    incAddressValue16 snakeHead
     ret
 
 ; Update the input 'facingDirection' variable
@@ -300,6 +259,32 @@ WaitForVBlank:
 VBlankInt:
     ld a, 10
     call PrintByteHex
+
+; Returns whether any input key is pressed in register a
+; a = 1 (input pressed), a = 0 (no input)
+DetectAnyInput:
+    ; Check arrow keys
+    ld a, 0
+    set 5, a
+	ld [$FF00], a
+    ld a, [$FF00]
+    cp a, $0F
+    ; If any bit is unset in right nibble, return 1
+    ld a, 1
+    ret nz
+    
+    ld a, 0
+    set 4, a
+	ld [$FF00], a
+    ld a, [$FF00]
+    cp a, $0F
+    ; If any bit is unset in right nibble, return 1
+    ld a, 1
+    ret nz
+
+    ; Else, return 0. No input
+    ld a, 0
+    ret
 
 SECTION "Tile data", ROM0
 

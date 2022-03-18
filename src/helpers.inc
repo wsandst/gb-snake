@@ -1,11 +1,6 @@
 
 SECTION "Helpers", ROM0
 
-; Custom breakpoints for the emulator. Treats ld b, b as breakpoints.
-MACRO BREAKPOINT
-	ld b, b
-ENDM
-
 ; Copy the memory in address de to address hl, with length bc
 Memcpy:
 	ld a, [de]
