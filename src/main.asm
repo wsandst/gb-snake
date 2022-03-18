@@ -71,10 +71,13 @@ StartGame:
     ; snakeLength = 1
     ld a, 1
     ld [snakeLength], a
-    ld a, 3
+    ld a, 7
     ; snakeLengthToGrow = 3
     ld [snakeLengthToGrow], a
     
+    ld a, 0
+    ld [facingDirection], a
+
     ; snakeHead = 0
     ld a, 0
     ld [snakeHead], a
@@ -97,19 +100,64 @@ StartGame:
 GameLoop:
     call WaitForVBlank
     inc a
-    cp a, 255
-    jp c, .next
+    cp a, 50
+    jp nz, .next
 
     BREAKPOINT
     ; Only move every 255 thing
     call MoveSnake
     ld a, 0
 .next
+    call UpdateInput
     jp GameLoop
     ret
 
 
 MoveSnake:
+MoveSnakeTail:
+    ld a, [snakeLengthToGrow]
+    cp a, 0
+    jr z, .next
+    dec a
+    ld [snakeLengthToGrow], a
+    jp MoveSnakeHead
+.next
+    ; Move tail
+    ; hl = [snakeTail]
+    ld a, [snakeTail]
+    ld h, a
+    ld a, [snakeTail + 1]
+    ld l, a
+
+    ld bc, snakeBodyQueue
+    add hl, bc
+
+    ; bc = [hl] (get the value pointed to in the queue)
+    ld b, [hl]
+    inc hl
+    ld c, [hl]
+
+    ; Clear this spot
+    push hl
+    ld h, b
+    ld l, c
+    ld [hl], 0
+    pop hl
+
+    ; Increment tail position
+    ld a, [snakeTail]
+    ld h, a
+    ld a, [snakeTail + 1]
+    ld l, a
+    inc hl
+    inc hl
+    ld a, h
+    ld [snakeTail], a
+    ld a, l
+    ld [snakeTail+1], a
+
+MoveSnakeHead:
+    ; Move head
     ; bc = current head position in tilemap coordinates
     ; hl = [snakeHead]
     ld a, [snakeHead]
@@ -126,8 +174,40 @@ MoveSnake:
     ld c, [hl]
 
     ; Move to the right
+    ld a, [facingDirection]
+    cp a, 0
+    jr z, .moveRight
+    cp a, 1
+    jr z, .moveLeft
+    cp a, 2
+    jr z, .moveUp
+    cp a, 3
+    jr z, .moveDown
+    jp .end
+.moveRight
     inc bc
+    jr .end
+.moveLeft 
+    dec bc
+    jr .end
+.moveUp
+    ld a, c
+    sub a, 32
+    ld c, a
+    ld a, b
+    sbc a, 0
+    ld b, a
 
+    jr .end
+.moveDown
+    ld a, c
+    add a, 32
+    ld c, a
+    ld a, b
+    adc a, 0
+    ld b, a
+    jr .end
+.end
     ; Update this tile location
     push hl
     ld h, b
@@ -157,9 +237,6 @@ MoveSnake:
     ld [snakeHead], a
     ld a, l
     ld [snakeHead+1], a
-
-    ; Handle tail later
-
     ret
 
 ; Update the input 'facingDirection' variable
@@ -427,17 +504,17 @@ TilemapTitle:
 TilemapTitleEnd:
 
 TilemapGame:
-	db $01, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00,  0,0,0,0,0,0,0,0,0,0,0,0
 	db $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00,  0,0,0,0,0,0,0,0,0,0,0,0
 	db $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00,  0,0,0,0,0,0,0,0,0,0,0,0
 	db $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00,  0,0,0,0,0,0,0,0,0,0,0,0
 	db $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00,  0,0,0,0,0,0,0,0,0,0,0,0
 	db $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00,  0,0,0,0,0,0,0,0,0,0,0,0
 	db $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00,  0,0,0,0,0,0,0,0,0,0,0,0
-	db $00, $00, $00, $00, $00, $00, $00,  01,  02,  03,  04, $00, $00, $00, $00, $00, $00, $00, $00, $00,  0,0,0,0,0,0,0,0,0,0,0,0
-	db $00, $00, $00, $00, $00, $00, $00,  05,  06,  07,  08, $00, $00, $00, $00, $00, $00, $00, $00, $00,  0,0,0,0,0,0,0,0,0,0,0,0
-	db $00, $00, $00, $00, $00, $00, $00,  09,  10,  11,  12,  16, $00, $00, $00, $00, $00, $00, $00, $00,  0,0,0,0,0,0,0,0,0,0,0,0
-	db $00, $00, $00, $00, $00, $00, $00,  13,  14,  15,  00, $00, $00, $00, $00, $00, $00, $00, $00, $00,  0,0,0,0,0,0,0,0,0,0,0,0
+	db $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00,  0,0,0,0,0,0,0,0,0,0,0,0
+	db $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00,  0,0,0,0,0,0,0,0,0,0,0,0
+	db $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00,  0,0,0,0,0,0,0,0,0,0,0,0
+	db $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00,  0,0,0,0,0,0,0,0,0,0,0,0
+	db $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00,  0,0,0,0,0,0,0,0,0,0,0,0
 	db $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00,  0,0,0,0,0,0,0,0,0,0,0,0
 	db $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00,  0,0,0,0,0,0,0,0,0,0,0,0
 	db $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00,  0,0,0,0,0,0,0,0,0,0,0,0
