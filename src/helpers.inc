@@ -21,6 +21,7 @@ PrintByteHex:
 	ld c, a
 	push af
 	push de
+	ld a, c
 
 	; Print first 4 bits
 	srl a
@@ -37,8 +38,8 @@ PrintByteHex:
 	; Print newline
 	ld a, 10
 	call PrintByteChar
-	pop af
 	pop de
+	pop af
 	pop bc
 	ret
 _Print4Bit:

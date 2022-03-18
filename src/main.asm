@@ -25,19 +25,24 @@ EntryPoint:
 	ld a, 0
 	ld [rNR52], a
 
+StartMenu:
     call WaitForVBlank
     copyTileData TilesTitle, TilesTitleEnd, TilemapTitle, TilemapTitleEnd
 
 	; During the first (blank) frame, initialize display registers
 	ld a, %11100100
 	ld [rBGP], a
+    
+    ld a, 60
+    call WaitForFrames
 
 StartMenuLoop:
-    call WaitForVBlank
+    ; Start game if any key is pressed
     call DetectAnyInput
     cp a, 1
     jp z, StartGame
 
+    call WaitForVBlank
     jp StartMenuLoop
 
 
@@ -77,13 +82,10 @@ StartGame:
     ret
 
 GameLoop:
-    call WaitForVBlank
-    inc a
-    cp a, 50
-    jp nz, .next
+    ld a, 5
+    call WaitForFrames
 
     BREAKPOINT
-    ; Only move every 255 thing
     call MoveSnake
     ld a, 0
 .next
@@ -183,6 +185,12 @@ MoveSnakeHead:
     push hl
     ld h, b
     ld l, c
+
+    ; Make sure this spot is empty, otherwise game over!
+    ld a, [hl]
+    cp a, 0
+    jp nz, GameOver
+
     ld [hl], 15
     pop hl
 
@@ -197,6 +205,10 @@ MoveSnakeHead:
     ; will need to handle wraparound here later
     incAddressValue16 snakeHead
     ret
+
+GameOver:
+    ; Display score,
+    jp StartMenu
 
 ; Update the input 'facingDirection' variable
 ; 0 = right, 1 = left, 2 = up, 3 = down
@@ -247,6 +259,7 @@ UpdateInput:
     pop bc
     ret
 
+; Wait until in VBlank. Will return directly if already in VBlank
 WaitForVBlank:
     push af
 .loop
@@ -256,9 +269,28 @@ WaitForVBlank:
     pop af
     ret
 
-VBlankInt:
-    ld a, 10
-    call PrintByteHex
+; Wait for the next frame (in VBlank)
+WaitForNextFrame:
+    push af
+.loop
+    ld   a, [rLY]
+    cp   144
+    jp   nz, .loop
+.loop2
+    ld   a, [rLY]
+    cp   145
+    jp   nz, .loop2
+
+    pop af
+    ret
+
+; Wait for a certain amount of frames, specified by register A
+WaitForFrames:
+    dec a
+    call WaitForNextFrame
+    cp a, 0
+    jr nz, WaitForFrames
+    ret
 
 ; Returns whether any input key is pressed in register a
 ; a = 1 (input pressed), a = 0 (no input)
