@@ -8,7 +8,8 @@ facingDirection:: db
 snakeLength :: dw
 snakeLengthToGrow: db
 ; Keep a queue of body tile positions. 
-; Positions are relative to TilemapGame. First 12 bits are the index, the last 4 bits are which subtile pos
+; Positions are stored as X, Y coordinates. X in first byte, Y in second.
+; The positions represent the tilemap position * 2, which allows for subtile precision
 snakeBodyQueue:: ds 2880
 snakeHead :: dw ; offset in snakeBodyQueue
 snakeTail :: dw ; offset in snakeBodyQueue
@@ -36,11 +37,6 @@ StartMenu:
     
     ld a, 0
     ld [rngSeed], a
-
-    ld h, 28
-    ld l, 20
-    call GetTileLocation
-    call PrintByteBits
 
     ld a, 60
     call WaitForFrames
@@ -72,7 +68,7 @@ StartGame:
     ; snakeLength = 1
     ld a, 1
     ld [snakeLength], a
-    ld a, 7
+    ld a, 5
     ; snakeLengthToGrow = 3
     ld [snakeLengthToGrow], a
     
@@ -88,10 +84,8 @@ StartGame:
     ld [snakeTail+1], a
 
     ; Set the first snake body element to be at the middle of the screen
-    ld bc, $9800
-    ld a, b
+    ld a, 0
     ld [snakeBodyQueue], a
-    ld a, c
     ld [snakeBodyQueue+1], a
 
     ld a, 0
@@ -140,6 +134,7 @@ MoveSnakeTail:
     push hl
     ld h, b
     ld l, c
+    call GetTileLocation
     ld [hl], 0
     pop hl
 
@@ -175,53 +170,37 @@ MoveSnakeHead:
     jr z, .moveDown
     jp .end
 .moveRight
-    inc bc
+    inc b
+    inc b
     jr .moveXBoundsCheck
 .moveLeft 
-    dec bc
+    dec b
+    dec b
 .moveXBoundsCheck
-    ; Isolate x coordinate
-    ld a, c
-    and a, %0011111
-    ; Check that it is within 0 < x < 20
-    cp a, 20
+    ; Check that x is within 0 < x < 40
+    ld a, b
+    cp a, 40
     jp nc, GameOver
     jp .end
 .moveUp
-    ld a, c
-    sub a, 32
-    ld c, a
-    ld a, b
-    sbc a, 0
-    ld b, a
+    dec c
+    dec c
     jr .moveYBoundsCheck
 .moveDown
-    ld a, c
-    add a, 32
-    ld c, a
-    ld a, b
-    adc a, 0
-    ld b, a
+    inc c
+    inc c
 .moveYBoundsCheck:
-    ; hl > 0x9800 (y > 0)
-    ld a, b
-    cp $98
-    jp c, GameOver
-    ; hl < 0x9A34 (y < 18)
-    cp $9A
-    jp c, .end
-    cp $98
-    jp c, GameOver
+    ; Check that y is within 0 < y < 36
     ld a, c
-    cp $34
-    jp c, .end
-    jp GameOver
+    cp a, 36
+    jp nc, GameOver
 .end
     ; Update this tile location
     push hl
     ld h, b
     ld l, c
 
+    call GetTileLocation
     ; Make sure this spot is empty, otherwise game over!
     ld a, [hl]
     cp a, 0
@@ -231,7 +210,7 @@ MoveSnakeHead:
     ld [hl], 15
     pop hl
 
-    ; Get next spot in queue and set to new tile location (need to handle wraparound later)
+    ; Get next spot in queue and set to new position
     inc hl
     ld a, b
     ld [hli], a
@@ -251,7 +230,11 @@ GameOver:
 ; x in h, y in l
 ; result in hl, subtile in a
 GetTileLocation:
+    ; set carry flag to 0
+    scf 
+    ccf
     push bc
+    push de
     ld d, h ; d = x
     ld e, l ; e = y
     ld a, l
@@ -263,17 +246,13 @@ GetTileLocation:
     ld c, d
     sra c
     ld b, 0
+
     add hl, bc
-    ; hl = y * 32 + x
+    
+    ; hl = 0x9800 + (y/2) * 32 + (x/2)
     ld b, $98
     ld c, 0
     add hl, bc
-
-    ld a, h
-    call PrintByteHex
-    ld a, l
-    call PrintByteHex
-    pop bc
 
     ; Set register a to subtile position
     ; This is determined if y, x is even or odd
@@ -284,22 +263,25 @@ GetTileLocation:
     jr z, .yoddxeven
     ; y odd, x odd
     ld a, %00000001
-    ret
+    jr .returnTL
 .yoddxeven
     ; y odd, x even
     ld a, %00000010
-    ret
+    jr .returnTL
 .yeven
     ; y even
     bit 0, d 
     jr z, .yevenxeven
     ; y even, x odd
     ld a, %00000100
-    ret
+    jr .returnTL
 .yevenxeven
     ld a, d
     ; y even, x even
     ld a, %00001000
+.returnTL
+    pop de
+    pop bc
     ret
 
 ; Update the input 'facingDirection' variable
