@@ -6,7 +6,7 @@ MACRO BREAKPOINT
 ENDM
 
 ; Increment the 16-bit value of an address by 2
-incAddressValue16: MACRO
+mIncAddressValue16: MACRO
     ld a, [\1]
     ld h, a
     ld a, [\1 + 1]
@@ -19,7 +19,7 @@ incAddressValue16: MACRO
     ld [\1+1], a
 ENDM
 
-copyTileData: MACRO
+mCopyTileData: MACRO
     ; Turn off LCD
     ld a, 0
 	ld [rLCDC], a
@@ -39,4 +39,19 @@ copyTileData: MACRO
     ; Turn on LCD
     ld a, LCDCF_ON | LCDCF_BGON
 	ld [rLCDC], a
+ENDM
+
+; Left-shifts register N times
+mLeftShift: MACRO
+    REPT \2
+        sla \1
+    ENDR
+ENDM
+
+; Left shifts regiter N times, and moves carry into secondary register
+mLeftShiftCarry: MACRO
+    REPT \3
+        rl \1
+        rl \2
+    ENDR
 ENDM

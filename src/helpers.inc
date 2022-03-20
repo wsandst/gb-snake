@@ -73,12 +73,19 @@ PrintByteBits:
 	ld c, 8
 .loop
 	ld a, b
-	and a, %00000001
+	and a, %10000000
+	srl a
+	srl a
+	srl a
+	srl a
+	srl a
+	srl a
+	srl a
 	ld d, 48
 	add d
 	call PrintByteChar
 	dec c
-	srl b
+	sla b
 	ld a, c
 	cp 0
 	jr nz, .loop

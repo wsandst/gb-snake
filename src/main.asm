@@ -12,6 +12,7 @@ snakeLengthToGrow: db
 snakeBodyQueue:: ds 2880
 snakeHead :: dw ; offset in snakeBodyQueue
 snakeTail :: dw ; offset in snakeBodyQueue
+rngSeed :: db
 
 SECTION "Header", ROM0[$100]
 
@@ -27,17 +28,31 @@ EntryPoint:
 
 StartMenu:
     call WaitForVBlank
-    copyTileData TilesTitle, TilesTitleEnd, TilemapTitle, TilemapTitleEnd
+    mCopyTileData TilesTitle, TilesTitleEnd, TilemapTitle, TilemapTitleEnd
 
 	; During the first (blank) frame, initialize display registers
 	ld a, %11100100
 	ld [rBGP], a
     
+    ld a, 0
+    ld [rngSeed], a
+
+    ld h, 28
+    ld l, 20
+    call GetTileLocation
+    call PrintByteBits
+
     ld a, 60
     call WaitForFrames
 
 StartMenuLoop:
     ; Start game if any key is pressed
+
+    ; Count the amount of main menu frames as RNG seed
+    ld a, [rngSeed]
+    inc a
+    ld [rngSeed], a
+
     call DetectAnyInput
     cp a, 1
     jp z, StartGame
@@ -47,9 +62,11 @@ StartMenuLoop:
 
 
 StartGame:
+    ld a, [rngSeed]
+    call PrintByteHex
     ; Init tilemap graphics
     call WaitForVBlank
-    copyTileData TilesGame, TilesGameEnd, TilemapGame, TilemapGameEnd
+    mCopyTileData TilesGame, TilesGameEnd, TilemapGame, TilemapGameEnd
 
     ; Initiate snake body
     ; snakeLength = 1
@@ -127,7 +144,7 @@ MoveSnakeTail:
     pop hl
 
     ; Increment tail position
-    incAddressValue16 snakeTail
+    mIncAddressValue16 snakeTail
 
 MoveSnakeHead:
     ; Move head
@@ -223,12 +240,67 @@ MoveSnakeHead:
 
     ; Move the head one step forward in the queue
     ; will need to handle wraparound here later
-    incAddressValue16 snakeHead
+    mIncAddressValue16 snakeHead
     ret
 
 GameOver:
     ; Display score,
     jp StartMenu
+
+; Calculate the tilemap location of a coordinate pair
+; x in h, y in l
+; result in hl, subtile in a
+GetTileLocation:
+    push bc
+    ld d, h ; d = x
+    ld e, l ; e = y
+    ld a, l
+    ; y << 4 = (y/2) * 32 = y * 16
+    ld b, 0
+    mLeftShiftCarry a, b, 4
+    ld h, b
+    ld l, a
+    ld c, d
+    sra c
+    ld b, 0
+    add hl, bc
+    ; hl = y * 32 + x
+    ld b, $98
+    ld c, 0
+    add hl, bc
+
+    ld a, h
+    call PrintByteHex
+    ld a, l
+    call PrintByteHex
+    pop bc
+
+    ; Set register a to subtile position
+    ; This is determined if y, x is even or odd
+    bit 0, e 
+    jr z, .yeven
+    ; y odd
+    bit 0, d 
+    jr z, .yoddxeven
+    ; y odd, x odd
+    ld a, %00000001
+    ret
+.yoddxeven
+    ; y odd, x even
+    ld a, %00000010
+    ret
+.yeven
+    ; y even
+    bit 0, d 
+    jr z, .yevenxeven
+    ; y even, x odd
+    ld a, %00000100
+    ret
+.yevenxeven
+    ld a, d
+    ; y even, x even
+    ld a, %00001000
+    ret
 
 ; Update the input 'facingDirection' variable
 ; 0 = right, 1 = left, 2 = up, 3 = down
