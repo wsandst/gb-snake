@@ -14,6 +14,9 @@ snakeBodyQueue:: ds 2880
 snakeHead :: dw ; offset in snakeBodyQueue
 snakeTail :: dw ; offset in snakeBodyQueue
 rngSeed :: db
+; Collectible/food location in subtile coordinates
+collectibleX :: db
+collectibleY :: db
 
 SECTION "Header", ROM0[$100]
 
@@ -60,6 +63,7 @@ StartMenuLoop:
 StartGame:
     ld a, [rngSeed]
     call PrintByteHex
+
     ; Init tilemap graphics
     call WaitForVBlank
     mCopyTileData TilesGame, TilesGameEnd, TilemapGame, TilemapGameEnd
@@ -98,6 +102,7 @@ GameLoop:
 
     BREAKPOINT
     call MoveSnake
+
     ld a, 0
 .next
     call UpdateInput
@@ -294,6 +299,37 @@ GetTileLocation:
     pop bc
     ret
 
+; Generate a new collectible position
+CreateNewCollectible:
+    ; X
+    call GenerateRNG
+    ld a, [rngSeed]   
+    ; Throw away lowest 2 bits
+    sra a
+    sra a
+    mModulo a, 38
+    inc a
+    ld [collectibleX], a
+    ld h, a
+
+    ; Y
+    call GenerateRNG
+    ld a, [rngSeed]   
+    ; Throw away lowest 2 bits
+    sra a
+    sra a
+    mModulo a, 34
+    inc a
+    ld [collectibleY], a
+
+    ; Set sprite location here
+    ld l, a
+
+    call GetTileLocation
+    ld [hl], 17
+
+    ret
+
 ; Update the input 'facingDirection' variable. 
 ; 0 = right, 1 = left, 2 = up, 3 = down. 
 ; All registers are restored. 
@@ -412,6 +448,22 @@ DetectAnyInput:
 
     ; Else, return 0. No input
     ld a, 0
+    ret
+    
+; Simple LCG RNG. Period is 256, so update seed frequently.
+; Restores all registers. Output in [rngSeed]
+GenerateRNG:
+    push af
+    push bc
+    ld a, [rngSeed]   
+    ld b, a            
+    add a, a          
+    add a, a   
+    add a, b       
+    inc a 
+    ld [rngSeed], a
+    pop bc
+    pop af
     ret
 
 SECTION "Tile data", ROM0
