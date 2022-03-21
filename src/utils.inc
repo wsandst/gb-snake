@@ -55,3 +55,27 @@ mLeftShiftCarry: MACRO
         rl \2
     ENDR
 ENDM
+
+; Take modulo of register. Slow
+; Result in a. Do not use de as arguments
+mModulo: MACRO
+    push de
+    ld e, \1
+    ld d, 0
+.loop\@
+    inc d
+    dec e
+
+    ; \1 > 0
+    ; val < MODULO
+    ld a, d
+    cp a, \2
+    jp nz, .next\@
+    ld d, 0
+.next\@
+    ld a, e
+    cp a, 0
+    jp nz, .loop\@
+    ld a, d
+    pop de
+ENDM

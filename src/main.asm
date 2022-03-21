@@ -38,11 +38,6 @@ StartMenu:
     ld a, 0
     ld [rngSeed], a
 
-    ld h, 4
-    ld l, 0
-    ld a, 0
-    call GetTileLocation
-
     ld a, 60
     call WaitForFrames
 
@@ -50,15 +45,15 @@ StartMenuLoop:
     ; Start game if any key is pressed
 
     ; Count the amount of main menu frames as RNG seed
-    ld a, [rngSeed]
-    inc a
-    ld [rngSeed], a
-
     call DetectAnyInput
     cp a, 1
     jp z, StartGame
 
     call WaitForVBlank
+
+    ld a, [rDIV]
+    ld [rngSeed], a
+
     jp StartMenuLoop
 
 
@@ -438,8 +433,9 @@ TilesGame:
 	db $66,$99, $99,$00, $99,$00, $66,$99, $06,$f9, $09,$f0, $09,$f0, $06,$f9, ; body1101, 13
 	db $66,$99, $99,$00, $99,$00, $66,$99, $60,$9f, $90,$0f, $90,$0f, $60,$9f, ; body1110, 14
 	db $66,$99, $99,$00, $99,$00, $66,$99, $66,$99, $99,$00, $99,$00, $66,$99, ; body1111, 15
+    db $66,$99, $99,$00, $99,$00, $66,$99, $66,$99, $99,$00, $99,$00, $66,$99, ; head, 16
 
-	db $00,$ff, $70,$8f, $fc,$23, $fe,$01, $fe,$01, $fc,$23, $70,$8f, $00,$ff, ; head, 16
+	db $ff,$ff, $ff,$ff, $ff,$ff, $ff,$ff, $ff,$ff, $ff,$ff, $ff,$ff, $ff,$ff, ; food, 17
 TilesGameEnd:
 
 TilesTitle:
