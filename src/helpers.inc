@@ -95,8 +95,8 @@ PrintByteBits:
 	call PrintByteChar
 
 	; Restore registers
-	pop af
 	pop de
+	pop af
 	pop bc
 	ret
 

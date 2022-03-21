@@ -38,6 +38,11 @@ StartMenu:
     ld a, 0
     ld [rngSeed], a
 
+    ld h, 4
+    ld l, 0
+    ld a, 0
+    call GetTileLocation
+
     ld a, 60
     call WaitForFrames
 
@@ -68,7 +73,7 @@ StartGame:
     ; snakeLength = 1
     ld a, 1
     ld [snakeLength], a
-    ld a, 5
+    ld a, 15
     ; snakeLengthToGrow = 3
     ld [snakeLengthToGrow], a
     
@@ -93,7 +98,7 @@ StartGame:
     ret
 
 GameLoop:
-    ld a, 10
+    ld a, 7
     call WaitForFrames
 
     BREAKPOINT
@@ -135,7 +140,13 @@ MoveSnakeTail:
     ld h, b
     ld l, c
     call GetTileLocation
-    ld [hl], 0
+    ; clear bit
+    cpl 
+    ld d, a
+    ld a, [hl]
+    and a, d
+    ld [hl], a
+
     pop hl
 
     ; Increment tail position
@@ -171,10 +182,8 @@ MoveSnakeHead:
     jp .end
 .moveRight
     inc b
-    inc b
     jr .moveXBoundsCheck
 .moveLeft 
-    dec b
     dec b
 .moveXBoundsCheck
     ; Check that x is within 0 < x < 40
@@ -184,10 +193,8 @@ MoveSnakeHead:
     jp .end
 .moveUp
     dec c
-    dec c
     jr .moveYBoundsCheck
 .moveDown
-    inc c
     inc c
 .moveYBoundsCheck:
     ; Check that y is within 0 < y < 36
@@ -202,12 +209,17 @@ MoveSnakeHead:
 
     call GetTileLocation
     ; Make sure this spot is empty, otherwise game over!
+    ld d, a
     ld a, [hl]
+    and a, d
     cp a, 0
     jp nz, GameOver
 
+    ; Set subtile to filled
+    ld a, [hl]
+    or a, d
 .next
-    ld [hl], 15
+    ld [hl], a
     pop hl
 
     ; Get next spot in queue and set to new position
@@ -226,9 +238,9 @@ GameOver:
     ; Display score,
     jp StartMenu
 
-; Calculate the tilemap location of a coordinate pair
-; x in h, y in l
-; result in hl, subtile in a
+; Calculate the tilemap location of a coordinate pair. 
+; x in h, y in l. 
+; result in hl, subtile in a. 
 GetTileLocation:
     ; set carry flag to 0
     scf 
@@ -240,7 +252,10 @@ GetTileLocation:
     ld a, l
     ; y << 4 = (y/2) * 32 = y * 16
     ld b, 0
-    mLeftShiftCarry a, b, 4
+    rra
+    scf 
+    ccf
+    mLeftShiftCarry a, b, 5
     ld h, b
     ld l, a
     ld c, d
@@ -284,9 +299,9 @@ GetTileLocation:
     pop bc
     ret
 
-; Update the input 'facingDirection' variable
-; 0 = right, 1 = left, 2 = up, 3 = down
-; All registers are restored
+; Update the input 'facingDirection' variable. 
+; 0 = right, 1 = left, 2 = up, 3 = down. 
+; All registers are restored. 
 UpdateInput:
     push af
     push bc
@@ -294,6 +309,10 @@ UpdateInput:
     ld a, 0
     set 5, a
 	ld [$FF00], a
+    ; Stabilize input
+    ld a, [$FF00]
+    ld a, [$FF00]
+    ld a, [$FF00]
     ld a, [$FF00]
     ld b, a
 
@@ -373,6 +392,10 @@ DetectAnyInput:
     ld a, 0
     set 5, a
 	ld [$FF00], a
+    ; Stabilize input
+    ld a, [$FF00]
+    ld a, [$FF00]
+    ld a, [$FF00]
     ld a, [$FF00]
     cp a, $0F
     ; If any bit is unset in right nibble, return 1
@@ -382,6 +405,10 @@ DetectAnyInput:
     ld a, 0
     set 4, a
 	ld [$FF00], a
+    ; Stabilize input
+    ld a, [$FF00]
+    ld a, [$FF00]
+    ld a, [$FF00]
     ld a, [$FF00]
     cp a, $0F
     ; If any bit is unset in right nibble, return 1
