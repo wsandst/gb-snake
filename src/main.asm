@@ -80,23 +80,15 @@ StartGame:
     mCopyGPUData $9000, TilesGame, TilesGameEnd
     mCopyGPUData $9800, TilemapGame, TilemapGameEnd
 
-    ld a, 50
-    ld [$FE00+0], a
-    ld [$FE00+1], a
-    ld a, 0
-    ld [$FE00+2], a
-    ld a, %00100000
-    ld [$FE00+3], a
-
+    ; Init sprites
     ld a, 70
     ld [$FE00+4+0], a
     ld [$FE00+4+1], a
 
-    ld a, 1
+    ld a, 2
     ld [$FE00+4+2], a
     ld a, 0
     ld [$FE00+4+3], a
-
 
     ; Enable LCD and sprites
     ld a, LCDCF_ON | LCDCF_BGON | LCDCF_OBJON
@@ -427,24 +419,40 @@ UpdateInput:
     ld a, [facingDirection]
     ld c, a
 
+    ; Only allow right press if left is not active
+    ld a, c
+    cp a, 1
+    jr z, .left 
     ; Check right arrow
     bit 0, b
     ld a, 0
     ld [facingDirection], a
     jr z, .return
-
+.left
+    ; Only allow left press if right is not active
+    ld a, c
+    cp a, 0
+    jr z, .up 
     ; Check left arrow
     bit 1, b
     ld a, 1
     ld [facingDirection], a
     jr z, .return
-
+.up
+    ; Only allow up press if down is not active
+    ld a, c
+    cp a, 3
+    jr z, .down 
     ; Check up arrow
     bit 2, b
     ld a, 2
     ld [facingDirection], a
     jr z, .return
-
+.down
+    ; Only allow down press if up is not active
+    ld a, c
+    cp a, 2
+    jr z, .return 
     ; Check down arrow
     bit 3, b
     ld a, 3
