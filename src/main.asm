@@ -32,11 +32,20 @@ EntryPoint:
 
 StartMenu:
     call WaitForVBlank
-    mCopyTileData TilesTitle, TilesTitleEnd, TilemapTitle, TilemapTitleEnd
+
+    mTurnOffLCD
+    mCopyGPUData $9000, TilesTitle, TilesTitleEnd
+    mCopyGPUData $9800, TilemapTitle, TilemapTitleEnd
+    mCopyGPUData $8000, SpriteTilesGame, SpriteTilesGameEnd
+    
+    mTurnOnLCD
 
 	; During the first (blank) frame, initialize display registers
 	ld a, %11100100
 	ld [rBGP], a
+
+    ld a, %11100100
+    ld [rOBP0], a
     
     ld a, 0
     ld [rngSeed], a
@@ -66,7 +75,32 @@ StartGame:
 
     ; Init tilemap graphics
     call WaitForVBlank
-    mCopyTileData TilesGame, TilesGameEnd, TilemapGame, TilemapGameEnd
+
+    mTurnOffLCD
+    mCopyGPUData $9000, TilesGame, TilesGameEnd
+    mCopyGPUData $9800, TilemapGame, TilemapGameEnd
+
+    ld a, 50
+    ld [$FE00+0], a
+    ld [$FE00+1], a
+    ld a, 0
+    ld [$FE00+2], a
+    ld a, %00100000
+    ld [$FE00+3], a
+
+    ld a, 70
+    ld [$FE00+4+0], a
+    ld [$FE00+4+1], a
+
+    ld a, 1
+    ld [$FE00+4+2], a
+    ld a, 0
+    ld [$FE00+4+3], a
+
+
+    ; Enable LCD and sprites
+    ld a, LCDCF_ON | LCDCF_BGON | LCDCF_OBJON
+    ld [rLCDC], a
 
     ; Initiate snake body
     ; snakeLength = 1
@@ -182,10 +216,22 @@ MoveSnakeHead:
     jp .end
 .moveRight
     inc b
+    ; Unflip sprite in X
+    ld a, 0
+    ld [$FE00+3], a
+    ld e, 9 ; sprite x offset
     jr .moveXBoundsCheck
 .moveLeft 
     dec b
+    ; Flip sprite in X
+    ld a, %00100000
+    ld [$FE00+3], a
+    ld e, 4 ; sprite x offset
 .moveXBoundsCheck
+    ld d, 14 ; sprite y offset
+    ; Set tile id to horizontal snake head
+    ld a, 0
+    ld [$FE00+2], a
     ; Check that x is within 0 < x < 40
     ld a, b
     cp a, 40
@@ -193,10 +239,22 @@ MoveSnakeHead:
     jp .end
 .moveUp
     dec c
+    ; Flip sprite in X
+    ld a, %01000000
+    ld [$FE00+3], a
+    ld d, 16 ; sprite y offset
     jr .moveYBoundsCheck
 .moveDown
     inc c
+    ; Unflip sprite in X6
+    ld a, 0
+    ld [$FE00+3], a
+    ld d, 12 ; sprite y offset
 .moveYBoundsCheck:
+    ld e, 6; sprite x offset
+    ; Set tile id to vertical snake head
+    ld a, 1
+    ld [$FE00+2], a
     ; Check that y is within 0 < y < 36
     ld a, c
     cp a, 36
@@ -204,6 +262,24 @@ MoveSnakeHead:
 .end
     ; Update this tile location
     push hl
+    ld h, b
+    ld l, c
+    
+    ; Update head sprite location
+    ld a, 0
+    add a, h
+    add a, a ; * 2
+    add a, a ; * 2
+    add a, e
+    ld h, a
+    ld a, 0
+    add a, l
+    add a, a ; * 2
+    add a, a ; * 2
+    add a, d
+    ld l, a
+    mSetSpritePosition 0, l, h
+
     ld h, b
     ld l, c
 
@@ -428,6 +504,7 @@ DetectAnyInput:
     ld a, [$FF00]
     ld a, [$FF00]
     ld a, [$FF00]
+    and a, $0F
     cp a, $0F
     ; If any bit is unset in right nibble, return 1
     ld a, 1
@@ -441,6 +518,7 @@ DetectAnyInput:
     ld a, [$FF00]
     ld a, [$FF00]
     ld a, [$FF00]
+    and a, $0F
     cp a, $0F
     ; If any bit is unset in right nibble, return 1
     ld a, 1
@@ -486,9 +564,13 @@ TilesGame:
 	db $66,$99, $99,$00, $99,$00, $66,$99, $60,$9f, $90,$0f, $90,$0f, $60,$9f, ; body1110, 14
 	db $66,$99, $99,$00, $99,$00, $66,$99, $66,$99, $99,$00, $99,$00, $66,$99, ; body1111, 15
     db $66,$99, $99,$00, $99,$00, $66,$99, $66,$99, $99,$00, $99,$00, $66,$99, ; head, 16
-
-	db $ff,$ff, $ff,$ff, $ff,$ff, $ff,$ff, $ff,$ff, $ff,$ff, $ff,$ff, $ff,$ff, ; food, 17
 TilesGameEnd:
+
+SpriteTilesGame:
+    db $00,$00, $70,$00, $fc,$20, $fe,$00, $fe,$00, $fc,$20, $70,$00, $00,$00, ; head horizontal, 0
+    db $3c,$00, $7e,$00, $7e,$24, $7e,$00, $3c,$00, $3c,$00, $18,$00, $00,$00, ; head vertical, 1
+    db $00,$00, $3c,$3c, $7e,$66, $7e,$42, $7e,$42, $7e,$66, $3c,$3c, $00,$00, ; collectible, 2
+SpriteTilesGameEnd:
 
 TilesTitle:
     ;mainmenu.png-0x0.png, 0:

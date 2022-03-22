@@ -19,26 +19,24 @@ mIncAddressValue16: MACRO
     ld [\1+1], a
 ENDM
 
-mCopyTileData: MACRO
+mCopyGPUData: MACRO
+    ; Copy the data
+    ld de, \2
+	ld hl, \1
+	ld bc, \3 - \2
+	call Memcpy
+ENDM
+
+mTurnOffLCD: MACRO
     ; Turn off LCD
     ld a, 0
-	ld [rLCDC], a
+    ld [rLCDC], a
+ENDM
 
-    ; Copy the tile data
-    ld de, \1
-	ld hl, $9000
-	ld bc, \2 - \1
-	call Memcpy
-
-	; Copy the tilemap
-	ld de, \3
-	ld hl, $9800
-	ld bc, \4 - \3
-	call Memcpy
-
+mTurnOnLCD: MACRO
     ; Turn on LCD
     ld a, LCDCF_ON | LCDCF_BGON
-	ld [rLCDC], a
+    ld [rLCDC], a
 ENDM
 
 ; Left-shifts register N times
@@ -54,6 +52,13 @@ mLeftShiftCarry: MACRO
         rl \1
         rl \2
     ENDR
+ENDM
+
+mSetSpritePosition: MACRO
+    ld a, \2
+    ld [$FE00 + \1*4 + 0], a
+    ld a, \3
+    ld [$FE00 + \1*4 + 1], a
 ENDM
 
 ; Take modulo of register. Slow

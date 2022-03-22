@@ -34,7 +34,7 @@ def main():
         i = i + 1
 
 def is_color_close(color1, color2):
-    return abs(color1 - color2[0]) < 35
+    return abs(color1[0] - color2[0]) < 35
 
 def convert_image(im):
     width, height = im.size
