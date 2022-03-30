@@ -81,10 +81,6 @@ StartGame:
     mCopyGPUData $9800, TilemapGame, TilemapGameEnd
 
     ; Init sprites
-    ld a, 70
-    ld [$FE00+4+0], a
-    ld [$FE00+4+1], a
-
     ld a, 2
     ld [$FE00+4+2], a
     ld a, 0
@@ -117,6 +113,8 @@ StartGame:
     ld a, 0
     ld [snakeBodyQueue], a
     ld [snakeBodyQueue+1], a
+
+    call CreateNewCollectible
 
     ld a, 0
     call GameLoop
@@ -254,23 +252,32 @@ MoveSnakeHead:
 .end
     ; Update this tile location
     push hl
+    push de
     ld h, b
     ld l, c
     
+    ; Check if the new head position is on a collectible
+    ld a, [collectibleX] 
+    cp a, h
+    jr nz, .noCollectible
+    ld a, [collectibleY] 
+    cp a, l
+    jr nz, .noCollectible
+
+    ; The snake head is on a pickup
+    ; Grow and generate a new one
+    ld a, [snakeLengthToGrow]
+    add a, 2
+    ld [snakeLengthToGrow], a
+    call CreateNewCollectible
+.noCollectible
+
+    pop de
     ; Update head sprite location
-    ld a, 0
-    add a, h
-    add a, a ; * 2
-    add a, a ; * 2
-    add a, e
-    ld h, a
-    ld a, 0
-    add a, l
-    add a, a ; * 2
-    add a, a ; * 2
-    add a, d
-    ld l, a
-    mSetSpritePosition 0, l, h
+    
+    call GetSpriteLocation
+    
+    ;mSetSpritePosition 0, l, h
 
     ld h, b
     ld l, c
@@ -367,8 +374,33 @@ GetTileLocation:
     pop bc
     ret
 
+; Calculate the sprite location of a snake body coordinate
+; x in h, y in l. e is extra x offset, extra d is y offset
+; Result in hl
+GetSpriteLocation:
+    push af
+    ; x
+    ld a, 0
+    add a, h
+    add a, a ; * 2
+    add a, a ; * 2
+    add a, e
+    ld h, a
+    ; y
+    ld a, 0
+    add a, l
+    add a, a ; * 2
+    add a, a ; * 2
+    add a, d
+    ld l, a
+    pop af
+    ret
+
 ; Generate a new collectible position
 CreateNewCollectible:
+    push af
+    push hl
+    push de
     ; X
     call GenerateRNG
     ld a, [rngSeed]   
@@ -389,13 +421,17 @@ CreateNewCollectible:
     mModulo a, 34
     inc a
     ld [collectibleY], a
-
-    ; Set sprite location here
     ld l, a
 
-    call GetTileLocation
-    ld [hl], 17
+    ld e, 6
+    ld d, 14
+    call GetSpriteLocation
 
+    mSetSpritePosition 1, l, h
+
+    pop de
+    pop hl
+    pop af
     ret
 
 ; Update the input 'facingDirection' variable. 
