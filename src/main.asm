@@ -21,6 +21,7 @@ collectibleY :: db
 ; Current score represented as 4 digits (2 BCD bytes)
 scoreBCD1 :: db
 scoreBCD2 :: db
+score: dw ; Score as binary
 
 SECTION "Header", ROM0[$100]
 
@@ -123,6 +124,10 @@ StartGame:
     ld [scoreBCD1], a
     ld a, 0
     ld [scoreBCD2], a
+    ld a, 0
+    ld [score], a
+    ld a, 3
+    ld [score + 1], a
 
     call CreateNewCollectible
 
@@ -131,7 +136,7 @@ StartGame:
     ret
 
 GameLoop:
-    ld a, 7
+    call DetermineSnakeSpeed
     call WaitForFrames
 
     BREAKPOINT
@@ -144,14 +149,59 @@ GameLoop:
     jp GameLoop
     ret
 
-; Return how many frames should be waited before every snake move
+; Return in reg a how many frames should be waited before every snake move
 DetermineSnakeSpeed:
-    ; score 0 =>
-    ; s < 10 => 7
-    ; s < 20 => 6
-    ; s < 30 => 5
-    ; s < 70 => 4
-    ; s < 130 => 3
+    ; if score > 256, jump to .greaterThan130
+    ld a, [score]
+    or a, a
+    jr nz, .greaterThan130
+
+    ; if score > 130, jump to .greaterThan130
+    ld a, [score+1]
+    sub a, 130
+    jr nc, .greaterThan130
+    
+    ; if score > 70, jump to .greaterThan70
+    ld a, [score+1]
+    sub a, 70
+    jr nc, .greaterThan70
+
+    ; if score > 30, jump to .greaterThan30
+    ld a, [score+1]
+    sub a, 30
+    jr nc, .greaterThan30
+
+    ; if score > 20, jump to .greaterThan20
+    ld a, [score+1]
+    sub a, 20
+    jr nc, .greaterThan20
+
+    ; if score > 10, jump to .greaterThan10
+    ld a, [score+1]
+    sub a, 10
+    jr nc, .greaterThan10
+
+    ; if a > 0, fall through
+.greaterThan0
+    ld a, 7
+    jp .next
+.greaterThan10
+    ld a, 6
+    jp .next
+.greaterThan20
+    ld a, 5
+    jp .next
+.greaterThan30
+    ld a, 4
+    jp .next
+.greaterThan70
+    ld a, 3
+    jp .next
+.greaterThan130
+    ld a, 2
+    jp .next
+.next
+    ret
 
 MoveSnake:
 MoveSnakeTail:
@@ -289,6 +339,7 @@ MoveSnakeHead:
     add a, 2
     ld [snakeLengthToGrow], a
     call IncrementScore
+    call IncrementScore
     call CreateNewCollectible
 .noCollectible
 
@@ -360,6 +411,22 @@ DrawScore:
 
 IncrementScore:
     push af
+    push hl
+    push bc
+    ; Increment score word
+    ld a, [score]
+    ld h, a
+    ld a, [score + 1]
+    ld l, a
+
+    ld bc, 1
+    add hl, bc
+
+    ld a, h
+    ld [score], a
+    ld a, l
+    ld [score+1], a
+
     ld a, [scoreBCD1]
     ; Increment first BCD byte
     add a, 1
@@ -376,6 +443,8 @@ IncrementScore:
     ld [scoreBCD2], a
     daa ; Use DAA to adjust after BCD add
 .next
+    pop bc
+    pop hl
     pop af
     ret
 
