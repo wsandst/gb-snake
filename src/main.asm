@@ -18,6 +18,10 @@ rngSeed :: db
 collectibleX :: db
 collectibleY :: db
 
+; Current score represented as 4 digits (2 BCD bytes)
+scoreBCD1 :: db
+scoreBCD2 :: db
+
 SECTION "Header", ROM0[$100]
 
 	jp EntryPoint
@@ -77,7 +81,7 @@ StartGame:
     call WaitForVBlank
 
     mTurnOffLCD
-    mCopyGPUData $9000, TilesGame, TilesGameEnd
+    mCopyGPUData $9000, TilesGame, TilesNumberFontEnd
     mCopyGPUData $9800, TilemapGame, TilemapGameEnd
 
     ; Init sprites
@@ -94,7 +98,7 @@ StartGame:
     ; snakeLength = 1
     ld a, 1
     ld [snakeLength], a
-    ld a, 15
+    ld a, 2
     ; snakeLengthToGrow = 3
     ld [snakeLengthToGrow], a
     
@@ -110,9 +114,15 @@ StartGame:
     ld [snakeTail+1], a
 
     ; Set the first snake body element to be at the middle of the screen
-    ld a, 0
+    ld a, 15
     ld [snakeBodyQueue], a
     ld [snakeBodyQueue+1], a
+
+    ; Setup score BCD
+    ld a, 3
+    ld [scoreBCD1], a
+    ld a, 0
+    ld [scoreBCD2], a
 
     call CreateNewCollectible
 
@@ -126,6 +136,7 @@ GameLoop:
 
     BREAKPOINT
     call MoveSnake
+    call DrawScore
 
     ld a, 0
 .next
@@ -133,6 +144,14 @@ GameLoop:
     jp GameLoop
     ret
 
+; Return how many frames should be waited before every snake move
+DetermineSnakeSpeed:
+    ; score 0 =>
+    ; s < 10 => 7
+    ; s < 20 => 6
+    ; s < 30 => 5
+    ; s < 70 => 4
+    ; s < 130 => 3
 
 MoveSnake:
 MoveSnakeTail:
@@ -269,6 +288,7 @@ MoveSnakeHead:
     ld a, [snakeLengthToGrow]
     add a, 2
     ld [snakeLengthToGrow], a
+    call IncrementScore
     call CreateNewCollectible
 .noCollectible
 
@@ -307,6 +327,56 @@ MoveSnakeHead:
     ; Move the head one step forward in the queue
     ; will need to handle wraparound here later
     mIncAddressValue16 snakeHead
+    ret
+
+DrawScore:
+    push af
+
+    ; First digit
+    ld a, [scoreBCD1]
+    and a, %00001111
+    add a, 17
+    ld [$9A33-0], a
+    ; Second digit
+    ld a, [scoreBCD1]
+    swap a
+    and a, %00001111
+    add a, 17
+    ld [$9A33-1], a
+    ; Third digit
+    ld a, [scoreBCD2]
+    and a, %00001111
+    add a, 17
+    ld [$9A33-2], a
+    ; Fourth digit
+    ld a, [scoreBCD2]
+    swap a
+    and a, %00001111
+    add a, 17
+    ld [$9A33-3], a
+
+    pop af
+    ret
+
+IncrementScore:
+    push af
+    ld a, [scoreBCD1]
+    ; Increment first BCD byte
+    add a, 1
+    daa ; Use DAA to adjust after BCD add
+    ; If we carried, increment the second byte
+    jr c, .incrementSecondByte
+    ld [scoreBCD1], a
+    jp .next
+.incrementSecondByte
+    ; Increment second BCD byte
+    ld [scoreBCD1], a
+    ld a, [scoreBCD2]
+    add a, 1
+    ld [scoreBCD2], a
+    daa ; Use DAA to adjust after BCD add
+.next
+    pop af
     ret
 
 GameOver:

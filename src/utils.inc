@@ -39,6 +39,13 @@ mTurnOnLCD: MACRO
     ld [rLCDC], a
 ENDM
 
+; Right-shifts register N times
+mRightShift: MACRO
+    REPT \2
+        sra \1
+    ENDR
+ENDM
+
 ; Left-shifts register N times
 mLeftShift: MACRO
     REPT \2
@@ -46,7 +53,7 @@ mLeftShift: MACRO
     ENDR
 ENDM
 
-; Left shifts regiter N times, and moves carry into secondary register
+; Left shifts register N times, and moves carry into secondary register
 mLeftShiftCarry: MACRO
     REPT \3
         rl \1

@@ -19,6 +19,29 @@ TilesGame:
     db $66,$99, $99,$00, $99,$00, $66,$99, $66,$99, $99,$00, $99,$00, $66,$99, ; head, 16
 TilesGameEnd:
 
+TilesNumberFont:
+    ;resources/font/0.png, 0:
+    db $00,$ff, $3c,$ff, $66,$ff, $6e,$ff, $76,$ff, $66,$ff, $3c,$ff, $00,$ff, 
+    ;resources/font/1.png, 1:
+    db $00,$ff, $18,$ff, $38,$ff, $18,$ff, $18,$ff, $18,$ff, $7e,$ff, $00,$ff, 
+    ;resources/font/2.png, 2:
+    db $00,$ff, $3c,$ff, $66,$ff, $0c,$ff, $18,$ff, $30,$ff, $7e,$ff, $00,$ff, 
+    ;resources/font/3.png, 3:
+    db $00,$ff, $7e,$ff, $0c,$ff, $18,$ff, $0c,$ff, $66,$ff, $3c,$ff, $00,$ff, 
+    ;resources/font/4.png, 4:
+    db $00,$ff, $0c,$ff, $1c,$ff, $3c,$ff, $6c,$ff, $7e,$ff, $0c,$ff, $00,$ff, 
+    ;resources/font/5.png, 5:
+    db $00,$ff, $7e,$ff, $60,$ff, $7c,$ff, $06,$ff, $66,$ff, $3c,$ff, $00,$ff, 
+    ;resources/font/6.png, 6:
+    db $00,$ff, $3c,$ff, $60,$ff, $7c,$ff, $66,$ff, $66,$ff, $3c,$ff, $00,$ff, 
+    ;resources/font/7.png, 7:
+    db $00,$ff, $7e,$ff, $06,$ff, $0c,$ff, $18,$ff, $30,$ff, $30,$ff, $00,$ff, 
+    ;resources/font/8.png, 8:
+    db $00,$ff, $3c,$ff, $66,$ff, $3c,$ff, $66,$ff, $66,$ff, $3c,$ff, $00,$ff, 
+    ;resources/font/9.png, 9:
+    db $00,$ff, $3c,$ff, $66,$ff, $3e,$ff, $06,$ff, $0c,$ff, $38,$ff, $00,$ff,
+TilesNumberFontEnd:
+
 SpriteTilesGame:
     db $00,$00, $70,$00, $fc,$20, $fe,$00, $fe,$00, $fc,$20, $70,$00, $00,$00, ; head horizontal, 0
     db $3c,$00, $7e,$00, $7e,$24, $7e,$00, $3c,$00, $3c,$00, $18,$00, $00,$00, ; head vertical, 1
