@@ -95,6 +95,10 @@ StartGame:
     ld a, LCDCF_ON | LCDCF_BGON | LCDCF_OBJON
     ld [rLCDC], a
 
+    ; Init palette
+    ld a, %01110010
+    ld [rOBP0], a
+
     ; Initiate snake body
     ; snakeLength = 1
     ld a, 1
@@ -158,27 +162,27 @@ DetermineSnakeSpeed:
 
     ; if score > 130, jump to .greaterThan130
     ld a, [score+1]
-    sub a, 130
+    cp 130
     jr nc, .greaterThan130
     
     ; if score > 70, jump to .greaterThan70
     ld a, [score+1]
-    sub a, 70
+    cp 70
     jr nc, .greaterThan70
 
     ; if score > 30, jump to .greaterThan30
     ld a, [score+1]
-    sub a, 30
+    cp 30
     jr nc, .greaterThan30
 
     ; if score > 20, jump to .greaterThan20
     ld a, [score+1]
-    sub a, 20
+    cp 20
     jr nc, .greaterThan20
 
     ; if score > 10, jump to .greaterThan10
     ld a, [score+1]
-    sub a, 10
+    cp 10
     jr nc, .greaterThan10
 
     ; if a > 0, fall through
@@ -568,7 +572,7 @@ CreateNewCollectible:
     ld d, l
     call GetTileLocation
     ld a, [hl]
-    sub a, 0
+    cp 0
     ; If so, generate a new one
     jr nz, .generateCollectiblePosition
     ld h, e
@@ -578,6 +582,14 @@ CreateNewCollectible:
     ld d, 14
     call GetSpriteLocation
     mSetSpritePosition 1, l, h
+
+    ; Randomize sprite
+    call GenerateRNG
+    ld a, [rngSeed]  
+    and a, %00010000
+    swap a
+    add a, 2
+    ld [$FE00+4+2], a
 
     pop de
     pop hl

@@ -46,6 +46,7 @@ SpriteTilesGame:
     db $00,$00, $70,$00, $fc,$20, $fe,$00, $fe,$00, $fc,$20, $70,$00, $00,$00, ; head horizontal, 0
     db $3c,$00, $7e,$00, $7e,$24, $7e,$00, $3c,$00, $3c,$00, $18,$00, $00,$00, ; head vertical, 1
     db $00,$00, $3c,$3c, $7e,$66, $7e,$42, $7e,$42, $7e,$66, $3c,$3c, $00,$00, ; collectible, 2
+    db $38,$38, $3c,$24, $1e,$12, $1e,$12, $1e,$12, $1e,$12, $3c,$24, $38,$38, ; collectible, 3
 SpriteTilesGameEnd:
 
 TilesTitle:
