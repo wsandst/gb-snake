@@ -453,7 +453,26 @@ IncrementScore:
     ret
 
 GameOver:
-    ; Display score,
+    ; Flash the snake by changing the palette
+    ld a, [rBGP]
+    ld b, a
+    ld c, 15
+    ld d, %11101101
+.loop 
+    ld a, d
+    xor a, %00001101
+    ld d, a
+    ld [rBGP], a
+    ld a, 10
+    call WaitForFrames
+    dec c
+    ld a, c
+    cp 0
+    jr nz, .loop
+.end
+    ; Restore the palette
+    ld a, b
+    ld [rBGP], a
     jp StartMenu
 
 ; Calculate the tilemap location of a coordinate pair. 
