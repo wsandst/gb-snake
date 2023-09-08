@@ -68,6 +68,13 @@ mSetSpritePosition: MACRO
     ld [$FE00 + \1*4 + 1], a
 ENDM
 
+mGetSpritePosition: MACRO
+    ld a, \2
+    ld [$FE00 + \1*4 + 0], a
+    ld a, \3
+    ld [$FE00 + \1*4 + 1], a
+ENDM
+
 ; Take modulo of register. Slow
 ; Result in a. Do not use de as arguments
 mModulo: MACRO

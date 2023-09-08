@@ -540,6 +540,7 @@ CreateNewCollectible:
     push af
     push hl
     push de
+.generateCollectiblePosition
     ; X
     call GenerateRNG
     ld a, [rngSeed]   
@@ -562,10 +563,20 @@ CreateNewCollectible:
     ld [collectibleY], a
     ld l, a
 
+    ; Double check that the collectible is not ontop another filled in tile
+    ld e, h
+    ld d, l
+    call GetTileLocation
+    ld a, [hl]
+    sub a, 0
+    ; If so, generate a new one
+    jr nz, .generateCollectiblePosition
+    ld h, e
+    ld l, d
+
     ld e, 6
     ld d, 14
     call GetSpriteLocation
-
     mSetSpritePosition 1, l, h
 
     pop de
