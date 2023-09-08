@@ -23,6 +23,8 @@ scoreBCD1 :: db
 scoreBCD2 :: db
 score: dw ; Score as binary
 
+menuInitialized :: db
+
 SECTION "Header", ROM0[$100]
 
 	jp EntryPoint
@@ -42,7 +44,7 @@ StartMenu:
     mCopyGPUData $9000, TilesTitle, TilesTitleEnd
     mCopyGPUData $9800, TilemapTitle, TilemapTitleEnd
     mCopyGPUData $8000, SpriteTilesGame, SpriteTilesGameEnd
-    
+
     mTurnOnLCD
 
 	; During the first (blank) frame, initialize display registers
@@ -55,8 +57,16 @@ StartMenu:
     ld a, 0
     ld [rngSeed], a
 
+    ; Setup initial window scroll position
+    ld a, $8F
+    ld [rSCY], a
+
+    ld a, 0
+    ld [menuInitialized], a
+
     ld a, 60
     call WaitForFrames
+
 
 StartMenuLoop:
     ; Start game if any key is pressed
@@ -67,16 +77,40 @@ StartMenuLoop:
     jp z, StartGame
 
     call WaitForVBlank
+    call AnimateStartMenuSnake
 
     ld a, [rDIV]
     ld [rngSeed], a
 
     jp StartMenuLoop
 
+AnimateStartMenuSnake:
+    ; Only animate snake if the menu is still being initialized
+    ld a, [menuInitialized]
+    cp 0
+    jr nz, .end
+
+    ; Move the window Y offset up
+    ld a, 2
+    call WaitForFrames
+    ld a, [rSCY]
+    add a, 1
+    ld [rSCY], a
+    cp a, 0
+    jr nz, .end
+    ; Animation done, rSCY is 0
+    ld a, 1
+    ld [menuInitialized], a
+.end
+    ret
+
 
 StartGame:
-    ld a, [rngSeed]
-    call PrintByteHex
+    ; Cancel start menu animation
+    ld a, 1
+    ld [menuInitialized], a
+    ld a, 0
+    ld [rSCY], a
 
     ; Init tilemap graphics
     call WaitForVBlank
