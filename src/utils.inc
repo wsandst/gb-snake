@@ -6,7 +6,7 @@ MACRO BREAKPOINT
 ENDM
 
 ; Increment the 16-bit value of an address by 2
-mIncAddressValue16: MACRO
+MACRO mIncAddressValue16
     ld a, [\1]
     ld h, a
     ld a, [\1 + 1]
@@ -19,7 +19,7 @@ mIncAddressValue16: MACRO
     ld [\1+1], a
 ENDM
 
-mCopyGPUData: MACRO
+MACRO mCopyGPUData
     ; Copy the data
     ld de, \2
 	ld hl, \1
@@ -27,48 +27,48 @@ mCopyGPUData: MACRO
 	call Memcpy
 ENDM
 
-mTurnOffLCD: MACRO
+MACRO mTurnOffLCD
     ; Turn off LCD
     ld a, 0
     ld [rLCDC], a
 ENDM
 
-mTurnOnLCD: MACRO
+MACRO mTurnOnLCD
     ; Turn on LCD
     ld a, LCDCF_ON | LCDCF_BGON
     ld [rLCDC], a
 ENDM
 
 ; Right-shifts register N times
-mRightShift: MACRO
+MACRO mRightShift
     REPT \2
         sra \1
     ENDR
 ENDM
 
 ; Left-shifts register N times
-mLeftShift: MACRO
+MACRO mLeftShift
     REPT \2
         sla \1
     ENDR
 ENDM
 
 ; Left shifts register N times, and moves carry into secondary register
-mLeftShiftCarry: MACRO
+MACRO mLeftShiftCarry
     REPT \3
         rl \1
         rl \2
     ENDR
 ENDM
 
-mSetSpritePosition: MACRO
+MACRO mSetSpritePosition
     ld a, \2
     ld [$FE00 + \1*4 + 0], a
     ld a, \3
     ld [$FE00 + \1*4 + 1], a
 ENDM
 
-mGetSpritePosition: MACRO
+MACRO mGetSpritePosition
     ld a, \2
     ld [$FE00 + \1*4 + 0], a
     ld a, \3
@@ -77,7 +77,7 @@ ENDM
 
 ; Take modulo of register. Slow
 ; Result in a. Do not use de as arguments
-mModulo: MACRO
+MACRO mModulo
     push de
     ld e, \1
     ld d, 0

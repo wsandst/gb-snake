@@ -6,3 +6,18 @@ The Gameboy architecture is tile based and the screen can fit 18x20 tiles. This 
 
 ## Build instructions
 RGBDS is required to assemble the game. Once installed, run `make` in the root directory. The rom file will now be available under `build/snake.gb`.
+
+
+
+I want X to follow a function: map rLY to an X
+
+ex sin(ly)
+
+new formula: cos((x * pi) / 15) * (4 / 0.587785252292)
+
+Better:
+cos((x * pi * 20)/255) * 4
+f\left(x\right)\ =\cos\left(\frac{x\pi}{263}\cdot20\right)\cdot4
+
+
+Favorite:   ; Function table for 'sin(x*0.25)*4'

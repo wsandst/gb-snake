@@ -25,12 +25,93 @@ score: dw ; Score as binary
 
 menuInitialized :: db
 
+animationCounter :: db
+
+; Interrupts
+
+SECTION "VBlank Interrupt", ROM0[$0040]
+VBlankInterrupt:
+	push af
+	push bc
+	push de
+	push hl
+	jp VBlankHandler
+
+SECTION "VBlank Handler", ROM0
+VBlankHandler:
+	pop hl
+	pop de
+	pop bc
+	pop af
+	reti
+
+SECTION "Stat Interrupt", ROM0[$0048]
+StatInterrupt:
+	push af
+	push hl
+    push bc
+	jp StatHandler
+
+SECTION "Stat Handler", ROM0
+StatHandler:
+    jp .end ; Disable for now
+    ; I don't have a ton of cycles to work with here
+    ld a, [rLY]
+    jr nc, .end
+
+    ld hl, SinTable
+    add a, l
+    ld l, a
+    ld a, [hl]
+
+    ; Squash the sine by mapping the animation counter to the squash table
+    ld b, a
+    ld a, [animationCounter]
+    ld hl, SquashTable
+    add a, l
+    ld l, a
+    ld a, [hl]
+    ld c, a
+    ld a, b
+
+.squash
+    ld a, c
+    cp 0
+    jr z, .squashDone
+    dec a
+    ld c, a
+    ld a, b
+    sra a
+    ld b, a
+    jp .squash
+.squashDone
+    ld a, b
+    ld [rSCX], a
+.end
+    pop bc
+	pop hl
+	pop af
+	reti
+
 SECTION "Header", ROM0[$100]
 
 	jp EntryPoint
 
 	ds $150 - @, 0 ; Make room for the header
 
+LYC::
+    push af
+    push hl
+    ldh a, [rLY]
+    cp 128 - 1
+
+    ld a, [rBGP]
+    ld d, %11101101
+    xor a, d
+    ld [rBGP], a
+    call PrintByteHex
+
+    reti
     
 EntryPoint:
 	; Shut down audio circuitry
@@ -46,6 +127,16 @@ StartMenu:
     mCopyGPUData $8000, SpriteTilesGame, SpriteTilesGameEnd
 
     mTurnOnLCD
+
+    ; Enable interrupts
+    ld a, STATF_MODE00
+    ldh [rSTAT], a
+
+	ld a, IEF_STAT
+	ldh [rIE], a
+    xor a, a ; This is equivalent to `ld a, 0`!
+	ldh [rIF], a
+    ei
 
 	; During the first (blank) frame, initialize display registers
 	ld a, %11100100
@@ -63,10 +154,20 @@ StartMenu:
 
     ld a, 0
     ld [menuInitialized], a
+    
+
+    ld a, $80
+    ld [rAUDENA], a
+    ld a, $FF
+    ld [rAUDTERM], a
+    ld a, $77
+    ld [rAUDVOL], a
+
+    ld hl, twinkle_little_star
+    call hUGE_init
 
     ld a, 60
     call WaitForFrames
-
 
 StartMenuLoop:
     ; Start game if any key is pressed
@@ -76,7 +177,7 @@ StartMenuLoop:
     cp a, 1
     jp z, StartGame
 
-    call WaitForVBlank
+    call WaitForNextFrame
     call AnimateStartMenuSnake
 
     ld a, [rDIV]
@@ -85,14 +186,18 @@ StartMenuLoop:
     jp StartMenuLoop
 
 AnimateStartMenuSnake:
+    ld a, 2
+    call WaitForFrames
+    ; Increment frame counter
+    ld a, [animationCounter]
+    inc a
+    ld [animationCounter], a
     ; Only animate snake if the menu is still being initialized
     ld a, [menuInitialized]
     cp 0
     jr nz, .end
 
     ; Move the window Y offset up
-    ld a, 2
-    call WaitForFrames
     ld a, [rSCY]
     add a, 1
     ld [rSCY], a
@@ -731,6 +836,7 @@ WaitForVBlank:
 ; Wait for the next frame (in VBlank)
 WaitForNextFrame:
     push af
+    call hUGE_dosound
 .loop
     ld   a, [rLY]
     cp   144
@@ -739,7 +845,6 @@ WaitForNextFrame:
     ld   a, [rLY]
     cp   145
     jp   nz, .loop2
-
     pop af
     ret
 
@@ -802,7 +907,7 @@ GenerateRNG:
     pop bc
     pop af
     ret
-
+    
 SECTION "Tile data", ROM0
 
 INCLUDE "data.inc"
