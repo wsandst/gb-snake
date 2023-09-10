@@ -155,7 +155,7 @@ StartMenu:
     ld a, 0
     ld [menuInitialized], a
     
-
+    ; Enable audio
     ld a, $80
     ld [rAUDENA], a
     ld a, $FF
@@ -163,7 +163,8 @@ StartMenu:
     ld a, $77
     ld [rAUDVOL], a
 
-    ld hl, twinkle_little_star
+    ; Start music
+    ld hl, test_song
     call hUGE_init
 
     ld a, 60
