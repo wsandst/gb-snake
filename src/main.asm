@@ -118,16 +118,6 @@ EntryPoint:
 	ld a, 0
 	ld [rNR52], a
 
-StartMenu:
-    call WaitForVBlank
-
-    mTurnOffLCD
-    mCopyGPUData $9000, TilesTitle, TilesTitleEnd
-    mCopyGPUData $9800, TilemapTitle, TilemapTitleEnd
-    mCopyGPUData $8000, SpriteTilesGame, SpriteTilesGameEnd
-
-    mTurnOnLCD
-
     ; Enable interrupts
     ld a, STATF_MODE00
     ldh [rSTAT], a
@@ -148,10 +138,6 @@ StartMenu:
     ld a, 0
     ld [rngSeed], a
 
-    ; Setup initial window scroll position
-    ld a, $8F
-    ld [rSCY], a
-
     ld a, 0
     ld [menuInitialized], a
     
@@ -166,6 +152,20 @@ StartMenu:
     ; Start music
     ld hl, test_song
     call hUGE_init
+
+    ; Setup initial window scroll position
+    ld a, $8F
+    ld [rSCY], a
+
+StartMenu:
+    call WaitForVBlank
+
+    mTurnOffLCD
+    mCopyGPUData $9000, TilesTitle, TilesTitleEnd
+    mCopyGPUData $9800, TilemapTitle, TilemapTitleEnd
+    mCopyGPUData $8000, SpriteTilesGame, SpriteTilesGameEnd
+
+    mTurnOnLCD
 
     ld a, 60
     call WaitForFrames
@@ -596,7 +596,7 @@ GameOver:
     ; Flash the snake by changing the palette
     ld a, [rBGP]
     ld b, a
-    ld c, 15
+    ld c, 10
     ld d, %11101101
 .loop 
     ld a, d
@@ -837,6 +837,9 @@ WaitForVBlank:
 ; Wait for the next frame (in VBlank)
 WaitForNextFrame:
     push af
+    push bc
+    push de
+    push hl
     call hUGE_dosound
 .loop
     ld   a, [rLY]
@@ -846,6 +849,9 @@ WaitForNextFrame:
     ld   a, [rLY]
     cp   145
     jp   nz, .loop2
+    pop hl
+    pop de
+    pop bc
     pop af
     ret
 

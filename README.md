@@ -21,3 +21,11 @@ f\left(x\right)\ =\cos\left(\frac{x\pi}{263}\cdot20\right)\cdot4
 
 
 Favorite:   ; Function table for 'sin(x*0.25)*4'
+
+
+Four lookup tables:
+Sin 1
+Sin 2
+Sin 3
+Then sin pick lookup for the frame counter
+Never animate for longer than a complete frame counter cycle
