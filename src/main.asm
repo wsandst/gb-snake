@@ -15,8 +15,8 @@ snakeHead :: dw ; offset in snakeBodyQueue
 snakeTail :: dw ; offset in snakeBodyQueue
 rngSeed :: db
 ; Collectible/food location in subtile coordinates
-collectibleX :: db
-collectibleY :: db
+def COLLECTIBLE_COUNT equ 3
+collectibleList :: ds COLLECTIBLE_COUNT*2
 
 ; Current score represented as 4 digits (2 BCD bytes)
 scoreBCD1 :: db
@@ -225,12 +225,6 @@ StartGame:
     mCopyGPUData $9000, TilesGame, TilesNumberFontEnd
     mCopyGPUData $9800, TilemapGame, TilemapGameEnd
 
-    ; Init sprites
-    ld a, 2
-    ld [$FE00+4+2], a
-    ld a, 0
-    ld [$FE00+4+3], a
-
     ; Enable LCD and sprites
     ld a, LCDCF_ON | LCDCF_BGON | LCDCF_OBJON
     ld [rLCDC], a
@@ -273,7 +267,17 @@ StartGame:
     ld a, 3
     ld [score + 1], a
 
+    ; Add initial collectibles
+    ld d, COLLECTIBLE_COUNT
+    ld hl, collectibleList + (COLLECTIBLE_COUNT-1)*2
+.addCollectible
+    dec d
     call CreateNewCollectible
+    dec hl
+    dec hl
+    ld a, d
+    cp a, 0
+    jr nz, .addCollectible
 
     ld a, 0
     call GameLoop
@@ -466,17 +470,26 @@ MoveSnakeHead:
     ; Update this tile location
     push hl
     push de
-    ld h, b
-    ld l, c
+    ld hl, collectibleList
     
+    ; Loop over every collectible
+    ld d, COLLECTIBLE_COUNT
+.collectibleCollisionsLoop
     ; Check if the new head position is on a collectible
-    ld a, [collectibleX] 
-    cp a, h
+    dec d
+    ld a, [hli] ; 0 => 1
+    cp a, b
     jr nz, .noCollectible
-    ld a, [collectibleY] 
-    cp a, l
-    jr nz, .noCollectible
-
+    ld a, [hl]
+    cp a, c
+    jr z, .collectible
+.noCollectible
+    inc hl ; 1 => 2
+    ld a, d
+    cp a, 0
+    jr nz, .collectibleCollisionsLoop
+    jp .loopEnd
+.collectible
     ; The snake head is on a pickup
     ; Grow and generate a new one
     ld a, [snakeLengthToGrow]
@@ -484,15 +497,19 @@ MoveSnakeHead:
     ld [snakeLengthToGrow], a
     call IncrementScore
     call IncrementScore
+    dec hl
+    inc d
+    ld a, COLLECTIBLE_COUNT
+    sub a, d 
+    ld d, a
     call CreateNewCollectible
-.noCollectible
-
+.loopEnd
     pop de
     ; Update head sprite location
     
     call GetSpriteLocation
     
-    ;mSetSpritePosition 0, l, h
+    ; mSetSpritePosition 0, l, h
 
     ld h, b
     ld l, c
@@ -698,12 +715,47 @@ GetSpriteLocation:
     pop af
     ret
 
-; Generate a new collectible position
-CreateNewCollectible:
-    push af
+; Set a sprite position and tile texture
+; sprite id in a, sprite x in h, sprite y in l
+SetSprite:
     push hl
+    sla a
+    sla a
+    ld hl, $FE00
+    add a, l
+    ld l, a
+    ld a, e
+    ld [hli], a
+    ld a, d
+    ld [hli], a
+    ld a, b
+    ld [hli], a
+    pop hl
+    ret
+
+; Generate a new collectible position
+; hl is address in collectible list, d is sprite index
+; destroys: a
+CreateNewCollectible:
+    ; juggle registers
+    push af
+    push bc
+    ld a, h
+    ld b, a
+    ld a, l
+    push hl
+    ld l, a
+    ld a, b
+    ld h, a
+    ld a, d
+    inc a
+    ld b, a
     push de
+    inc hl
+    inc hl
 .generateCollectiblePosition
+    dec hl
+    dec hl
     ; X
     call GenerateRNG
     ld a, [rngSeed]   
@@ -712,8 +764,8 @@ CreateNewCollectible:
     sra a
     mModulo a, 38
     inc a
-    ld [collectibleX], a
-    ld h, a
+    ld [hli], a
+    ld e, a
 
     ; Y
     call GenerateRNG
@@ -723,35 +775,45 @@ CreateNewCollectible:
     sra a
     mModulo a, 34
     inc a
-    ld [collectibleY], a
-    ld l, a
+    ld [hli], a ; hli causes issues here, what happens if we fail? Then hl keeps increasing, bad
+    ld d, a
 
     ; Double check that the collectible is not ontop another filled in tile
-    ld e, h
-    ld d, l
+    push hl
+    ld h, e
+    ld l, d
     call GetTileLocation
     ld a, [hl]
     cp 0
+    pop hl
     ; If so, generate a new one
     jr nz, .generateCollectiblePosition
     ld h, e
     ld l, d
 
-    ld e, 6
-    ld d, 14
-    call GetSpriteLocation
-    mSetSpritePosition 1, l, h
-
     ; Randomize sprite
+    ld d, b
+    push bc
+    ld c, d
     call GenerateRNG
     ld a, [rngSeed]  
     and a, %00010000
     swap a
     add a, 2
-    ld [$FE00+4+2], a
+    ld b, a
+
+    ld e, 6
+    ld d, 14
+    call GetSpriteLocation
+    ld a, c
+    ld e, l
+    ld d, h
+    call SetSprite
+    pop bc
 
     pop de
     pop hl
+    pop bc
     pop af
     ret
 

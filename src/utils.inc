@@ -98,3 +98,13 @@ MACRO mModulo
     ld a, d
     pop de
 ENDM
+
+
+MACRO mPrintRegHex
+    push af
+    ld a, \1
+    call PrintByteHexNoNewline
+    ld a, \2
+    call PrintByteHex
+    pop af
+ENDM
