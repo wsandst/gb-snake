@@ -150,7 +150,7 @@ EntryPoint:
     ld [rAUDVOL], a
 
     ; Start music
-    ld hl, test_song
+    ld hl, snake_song
     call hUGE_init
 
     ; Setup initial window scroll position
@@ -158,6 +158,8 @@ EntryPoint:
     ld [rSCY], a
 
 StartMenu:
+    ld a, 8
+    ld [ticks_per_row], a
     call WaitForVBlank
 
     mTurnOffLCD
@@ -285,6 +287,9 @@ StartGame:
 
 GameLoop:
     call DetermineSnakeSpeed
+    ;ld a, c
+    ; ld [ticks_per_row], a
+    ld a, b
     call WaitForFrames
 
     BREAKPOINT
@@ -298,6 +303,7 @@ GameLoop:
     ret
 
 ; Return in reg a how many frames should be waited before every snake move
+; Returns: b is frames per movement, c is music tempo
 DetermineSnakeSpeed:
     ; if score > 256, jump to .greaterThan130
     ld a, [score]
@@ -331,24 +337,37 @@ DetermineSnakeSpeed:
 
     ; if a > 0, fall through
 .greaterThan0
+    ld a, 8
+    ld c, a
     ld a, 7
     jp .next
 .greaterThan10
-    ld a, 6
+    ld a, 8
+    ld c, a
+    ld b, 6
     jp .next
 .greaterThan20
+    ld a, 7
+    ld c, a
     ld a, 5
     jp .next
 .greaterThan30
+    ld a, 7
+    ld c, a
     ld a, 4
     jp .next
 .greaterThan70
+    ld a, 7
+    ld c, a
     ld a, 3
     jp .next
 .greaterThan130
+    ld a, 6
+    ld c, a
     ld a, 2
     jp .next
 .next
+    ld b, a
     ret
 
 MoveSnake:
