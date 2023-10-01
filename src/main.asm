@@ -15,7 +15,7 @@ snakeHead :: dw ; offset in snakeBodyQueue
 snakeTail :: dw ; offset in snakeBodyQueue
 rngSeed :: db
 ; Collectible/food location in subtile coordinates
-def COLLECTIBLE_COUNT equ 3
+def COLLECTIBLE_COUNT equ 1
 collectibleList :: ds COLLECTIBLE_COUNT*2
 
 ; Current score represented as 4 digits (2 BCD bytes)
@@ -158,8 +158,6 @@ EntryPoint:
     ld [rSCY], a
 
 StartMenu:
-    ld a, 8
-    ld [ticks_per_row], a
     call WaitForVBlank
 
     mTurnOffLCD
